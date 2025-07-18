@@ -94,6 +94,13 @@ async function handleAnalyze(e) {
         }
 
         const data = await response.json();
+        
+        // Check if this is a placeholder response
+        if (data.message && data.message.includes('to be implemented')) {
+            showError('Analysis functionality not yet implemented. Please check server implementation.');
+            return;
+        }
+        
         currentAnalysis = data;
         displayResults(data);
         loadPreviousAnalyses();
@@ -118,7 +125,7 @@ function displayResults(data) {
             <strong>Video ID:</strong> ${escapeHtml(data.videoId || 'N/A')}
         </div>
         <div class="metadata-item">
-            <strong>Duration:</strong> ${formatDuration(data.metadata?.duration) || 'N/A'}
+            <strong>Duration:</strong> ${data.metadata ? (formatDuration(data.metadata.duration) || 'N/A') : 'N/A'}
         </div>
     `;
 
@@ -148,8 +155,15 @@ async function loadPreviousAnalyses() {
 
         if (!response.ok) return;
 
-        const analyses = await response.json();
-        displayAnalysesList(analyses);
+        const data = await response.json();
+        
+        // Check if we received an array or a placeholder message
+        if (Array.isArray(data)) {
+            displayAnalysesList(data);
+        } else {
+            // Handle placeholder response
+            analysesList.innerHTML = '<p class="empty-state">API endpoint not yet implemented</p>';
+        }
     } catch (error) {
         console.error('Failed to load previous analyses:', error);
     }
