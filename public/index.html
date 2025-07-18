@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouTube Video Analyzer</h1>
+            <p>Extract metadata and transcripts from YouTube videos</p>
+        </header>
+
+        <main>
+            <!-- API Key Section -->
+            <section class="api-key-section">
+                <div class="api-key-container">
+                    <label for="apiKey">API Key:</label>
+                    <input type="password" id="apiKey" placeholder="Enter your API key" />
+                    <button id="saveApiKey">Save</button>
+                </div>
+                <div id="apiKeyStatus" class="status-message"></div>
+            </section>
+
+            <!-- Video Analysis Form -->
+            <section class="analysis-section">
+                <form id="analyzeForm">
+                    <div class="form-group">
+                        <label for="videoUrl">YouTube Video URL:</label>
+                        <input 
+                            type="url" 
+                            id="videoUrl" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            required 
+                        />
+                    </div>
+                    <button type="submit" id="analyzeButton">Analyze Video</button>
+                </form>
+            </section>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Analyzing video...</p>
+            </div>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section hidden">
+                <h2>Analysis Results</h2>
+                
+                <!-- Video Info -->
+                <div class="video-info">
+                    <h3>Video Information</h3>
+                    <div id="videoMetadata"></div>
+                </div>
+
+                <!-- Transcript -->
+                <div class="transcript-section">
+                    <h3>Transcript</h3>
+                    <div id="transcriptContent"></div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="export-section">
+                    <button id="copyJson" class="export-button">Copy as JSON</button>
+                    <button id="downloadJson" class="export-button">Download JSON</button>
+                </div>
+            </section>
+
+            <!-- Error Messages -->
+            <div id="errorMessage" class="error-message hidden"></div>
+
+            <!-- Previous Analyses -->
+            <section class="previous-analyses">
+                <h2>Previous Analyses</h2>
+                <div id="analysesList" class="analyses-list">
+                    <p class="empty-state">No previous analyses found</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>YouTube Video Analyzer &copy; 2024</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
