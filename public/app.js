@@ -1,13 +1,11 @@
 // YouTube Video Analyzer - Frontend JavaScript
 
 // Global state
+let authToken = localStorage.getItem('yva_auth_token') || '';
 let apiKey = localStorage.getItem('yva_api_key') || '';
 let currentAnalysis = null;
 
 // DOM Elements
-const apiKeyInput = document.getElementById('apiKey');
-const saveApiKeyButton = document.getElementById('saveApiKey');
-const apiKeyStatus = document.getElementById('apiKeyStatus');
 const analyzeForm = document.getElementById('analyzeForm');
 const videoUrlInput = document.getElementById('videoUrl');
 const analyzeButton = document.getElementById('analyzeButton');
@@ -22,50 +20,80 @@ const downloadJsonButton = document.getElementById('downloadJson');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    if (apiKey) {
-        apiKeyInput.value = apiKey;
-        showApiKeyStatus('API key loaded from storage', 'success');
-        loadPreviousAnalyses();
-    }
-
+    // Check authentication
+    checkAuth();
+    
     // Event listeners
-    saveApiKeyButton.addEventListener('click', saveApiKey);
     analyzeForm.addEventListener('submit', handleAnalyze);
     copyJsonButton.addEventListener('click', copyToClipboard);
     downloadJsonButton.addEventListener('click', downloadJson);
+    
+    // Add logout button functionality if exists
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', handleLogout);
+    }
 });
 
-// API Key Management
-function saveApiKey() {
-    const key = apiKeyInput.value.trim();
-    if (!key) {
-        showApiKeyStatus('Please enter an API key', 'error');
+// Check authentication status
+async function checkAuth() {
+    if (!authToken) {
+        window.location.href = '/login.html';
         return;
     }
-
-    apiKey = key;
-    localStorage.setItem('yva_api_key', apiKey);
-    showApiKeyStatus('API key saved', 'success');
-    loadPreviousAnalyses();
+    
+    try {
+        const response = await fetch('/api/auth/verify', {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Invalid session');
+        }
+        
+        // Authentication successful, load previous analyses
+        loadPreviousAnalyses();
+    } catch (error) {
+        // Invalid token, redirect to login
+        localStorage.removeItem('yva_auth_token');
+        localStorage.removeItem('yva_api_key');
+        window.location.href = '/login.html';
+    }
 }
 
-function showApiKeyStatus(message, type) {
-    apiKeyStatus.textContent = message;
-    apiKeyStatus.className = `status-message ${type}`;
-    setTimeout(() => {
-        apiKeyStatus.textContent = '';
-        apiKeyStatus.className = 'status-message';
-    }, 3000);
+// Handle logout
+async function handleLogout() {
+    try {
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+    
+    // Clear local storage and redirect
+    localStorage.removeItem('yva_auth_token');
+    localStorage.removeItem('yva_api_key');
+    window.location.href = '/login.html';
+}
+
+// Helper function to get auth headers
+function getAuthHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+        'X-API-Key': apiKey // Include API key for backward compatibility
+    };
 }
 
 // Video Analysis
 async function handleAnalyze(e) {
     e.preventDefault();
-    
-    if (!apiKey) {
-        showError('Please set your API key first');
-        return;
-    }
 
     const videoUrl = videoUrlInput.value.trim();
     if (!videoUrl) {
@@ -81,26 +109,23 @@ async function handleAnalyze(e) {
     try {
         const response = await fetch('/api/video/analyze', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': apiKey
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ url: videoUrl })
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                // Session expired, redirect to login
+                localStorage.removeItem('yva_auth_token');
+                localStorage.removeItem('yva_api_key');
+                window.location.href = '/login.html';
+                return;
+            }
             const error = await response.json();
             throw new Error(error.error || 'Analysis failed');
         }
 
         const data = await response.json();
-        
-        // Check if this is a placeholder response
-        if (data.message && data.message.includes('to be implemented')) {
-            showError('Analysis functionality not yet implemented. Please check server implementation.');
-            return;
-        }
-        
         currentAnalysis = data;
         displayResults(data);
         loadPreviousAnalyses();
@@ -144,26 +169,24 @@ function displayResults(data) {
 }
 
 async function loadPreviousAnalyses() {
-    if (!apiKey) return;
-
     try {
         const response = await fetch('/api/videos', {
-            headers: {
-                'X-API-Key': apiKey
-            }
+            headers: getAuthHeaders()
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Session expired, redirect to login
+                localStorage.removeItem('yva_auth_token');
+                localStorage.removeItem('yva_api_key');
+                window.location.href = '/login.html';
+                return;
+            }
+            return;
+        }
 
         const data = await response.json();
-        
-        // Check if we received an array or a placeholder message
-        if (Array.isArray(data)) {
-            displayAnalysesList(data);
-        } else {
-            // Handle placeholder response
-            analysesList.innerHTML = '<p class="empty-state">API endpoint not yet implemented</p>';
-        }
+        displayAnalysesList(data);
     } catch (error) {
         console.error('Failed to load previous analyses:', error);
     }
@@ -221,12 +244,18 @@ function downloadJson() {
 window.viewAnalysis = async function(id) {
     try {
         const response = await fetch(`/api/video/${id}`, {
-            headers: {
-                'X-API-Key': apiKey
-            }
+            headers: getAuthHeaders()
         });
 
-        if (!response.ok) throw new Error('Failed to load analysis');
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('yva_auth_token');
+                localStorage.removeItem('yva_api_key');
+                window.location.href = '/login.html';
+                return;
+            }
+            throw new Error('Failed to load analysis');
+        }
 
         const data = await response.json();
         currentAnalysis = data;
@@ -243,12 +272,18 @@ window.deleteAnalysis = async function(id) {
     try {
         const response = await fetch(`/api/video/${id}`, {
             method: 'DELETE',
-            headers: {
-                'X-API-Key': apiKey
-            }
+            headers: getAuthHeaders()
         });
 
-        if (!response.ok) throw new Error('Failed to delete analysis');
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('yva_auth_token');
+                localStorage.removeItem('yva_api_key');
+                window.location.href = '/login.html';
+                return;
+            }
+            throw new Error('Failed to delete analysis');
+        }
 
         loadPreviousAnalyses();
     } catch (error) {

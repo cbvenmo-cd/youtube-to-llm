@@ -32,6 +32,12 @@ header {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 header h1 {
     color: #2c3e50;
     margin-bottom: 0.5rem;
@@ -39,6 +45,21 @@ header h1 {
 
 header p {
     color: #7f8c8d;
+}
+
+.logout-button {
+    padding: 0.5rem 1rem;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #c0392b;
 }
 
 /* Main Content */

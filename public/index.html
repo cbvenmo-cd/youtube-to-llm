@@ -9,20 +9,16 @@
 <body>
     <div class="container">
         <header>
-            <h1>YouTube Video Analyzer</h1>
-            <p>Extract metadata and transcripts from YouTube videos</p>
+            <div class="header-content">
+                <div>
+                    <h1>YouTube Video Analyzer</h1>
+                    <p>Extract metadata and transcripts from YouTube videos</p>
+                </div>
+                <button id="logoutButton" class="logout-button">Logout</button>
+            </div>
         </header>
 
         <main>
-            <!-- API Key Section -->
-            <section class="api-key-section">
-                <div class="api-key-container">
-                    <label for="apiKey">API Key:</label>
-                    <input type="password" id="apiKey" placeholder="Enter your API key" />
-                    <button id="saveApiKey">Save</button>
-                </div>
-                <div id="apiKeyStatus" class="status-message"></div>
-            </section>
 
             <!-- Video Analysis Form -->
             <section class="analysis-section">

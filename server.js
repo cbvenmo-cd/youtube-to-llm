@@ -1,6 +1,10 @@
 // YouTube Video Analyzer - Main Server
 // This file will contain all the Express server logic, API endpoints, and integrations
 
+const dns = require('dns');
+// Force IPv4 resolution for Supabase compatibility
+dns.setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -9,6 +13,7 @@ const axios = require('axios');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
+const crypto = require('crypto');
 
 // Load environment variables
 dotenv.config();
@@ -18,13 +23,62 @@ const app = express();
 const prisma = new PrismaClient();
 const execAsync = promisify(exec);
 
+// Session storage (in production, use Redis or database)
+const sessions = new Map();
+
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
 
-// API Key Authentication Middleware
+// Serve static files except for the root route
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html') {
+    // Handle root route separately to check authentication
+    return next();
+  }
+  express.static('public')(req, res, next);
+});
+
+// Generate session token
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Session Authentication Middleware
+const authenticateSession = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  if (!token || !sessions.has(token)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  // Check if session is expired (24 hours)
+  const session = sessions.get(token);
+  if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
+    sessions.delete(token);
+    return res.status(401).json({ error: 'Session expired' });
+  }
+  
+  req.session = session;
+  next();
+};
+
+// API Key Authentication Middleware (for backward compatibility)
 const authenticateApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'];
+  // First check for session token
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  if (token && sessions.has(token)) {
+    const session = sessions.get(token);
+    if (Date.now() - session.createdAt <= 24 * 60 * 60 * 1000) {
+      req.session = session;
+      return next();
+    }
+  }
+  
+  // Fall back to API key authentication
+  const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
   
   if (!apiKey || apiKey !== process.env.API_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -213,6 +267,66 @@ async function getTranscript(videoUrl, videoId) {
     return null;
   }
 }
+
+// Authentication Routes
+app.post('/api/auth/login', (req, res) => {
+  const { apiKey } = req.body;
+  
+  if (!apiKey || apiKey !== process.env.API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  
+  // Generate session token
+  const token = generateToken();
+  const session = {
+    token,
+    createdAt: Date.now(),
+    apiKey
+  };
+  
+  sessions.set(token, session);
+  
+  res.json({ 
+    success: true, 
+    token,
+    expiresIn: 86400 // 24 hours in seconds
+  });
+});
+
+app.get('/api/auth/verify', authenticateSession, (req, res) => {
+  res.json({ 
+    success: true, 
+    valid: true 
+  });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  if (token && sessions.has(token)) {
+    sessions.delete(token);
+  }
+  
+  res.json({ success: true });
+});
+
+// Serve main app page with auth check
+app.get('/', (req, res) => {
+  const authHeader = req.headers['authorization'] || req.headers['cookie'];
+  const token = authHeader && authHeader.includes('yva_auth_token=') 
+    ? authHeader.split('yva_auth_token=')[1].split(';')[0] 
+    : null;
+  
+  // For initial page load, check if user has valid session
+  if (!token || !sessions.has(token)) {
+    // Redirect to login page
+    return res.redirect('/login.html');
+  }
+  
+  // Serve the main app
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

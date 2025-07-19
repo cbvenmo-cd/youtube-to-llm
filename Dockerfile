@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yt-dlp
-RUN pip3 install --no-cache-dir yt-dlp
+# Use --break-system-packages flag for PEP 668 compliance or install via apt
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 # Create app directory
 WORKDIR /usr/src/app
