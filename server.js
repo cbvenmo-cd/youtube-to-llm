@@ -325,6 +325,10 @@ app.get('/video/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'video.html'));
 });
 
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+
 // Redirect old .html URLs to clean URLs
 app.get('/login.html', (req, res) => {
   res.redirect(301, '/login');
@@ -336,6 +340,10 @@ app.get('/video.html', (req, res) => {
 
 app.get('/index.html', (req, res) => {
   res.redirect(301, '/');
+});
+
+app.get('/settings.html', (req, res) => {
+  res.redirect(301, '/settings');
 });
 
 // Health check endpoint
@@ -410,7 +418,14 @@ app.get('/api/video/:id', authenticateApiKey, async (req, res) => {
     
     const analysis = await prisma.videoAnalysis.findUnique({
       where: { id: parseInt(id) },
-      include: { transcript: true }
+      include: { 
+        transcript: true,
+        tags: {
+          include: {
+            tag: true
+          }
+        }
+      }
     });
     
     if (!analysis) {
@@ -440,6 +455,11 @@ app.get('/api/videos', authenticateApiKey, async (req, res) => {
             id: true,
             language: true
           }
+        },
+        tags: {
+          include: {
+            tag: true
+          }
         }
       }
     });
@@ -457,7 +477,7 @@ app.delete('/api/video/:id', authenticateApiKey, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Delete will cascade to transcript due to relation
+    // Delete will cascade to transcript and tags due to relation
     await prisma.videoAnalysis.delete({
       where: { id: parseInt(id) }
     });
@@ -469,6 +489,176 @@ app.delete('/api/video/:id', authenticateApiKey, async (req, res) => {
     }
     console.error('Error deleting video:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Tag Management Routes
+
+// Get all tags
+app.get('/api/tags', authenticateApiKey, async (req, res) => {
+  try {
+    const tags = await prisma.tag.findMany({
+      include: {
+        _count: {
+          select: { videos: true }
+        }
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    res.json(tags);
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    res.status(500).json({ error: 'Failed to fetch tags' });
+  }
+});
+
+// Create a new tag
+app.post('/api/tags', authenticateApiKey, async (req, res) => {
+  try {
+    const { name, color } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Tag name is required' });
+    }
+
+    // Validate color if provided
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      return res.status(400).json({ error: 'Invalid color format. Use hex format like #FF5733' });
+    }
+
+    const tag = await prisma.tag.create({
+      data: {
+        name: name.trim(),
+        color: color || null
+      }
+    });
+
+    res.json(tag);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Tag already exists' });
+    }
+    console.error('Error creating tag:', error);
+    res.status(500).json({ error: 'Failed to create tag' });
+  }
+});
+
+// Update a tag
+app.put('/api/tags/:id', authenticateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, color } = req.body;
+
+    if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+      return res.status(400).json({ error: 'Invalid color format. Use hex format like #FF5733' });
+    }
+
+    const tag = await prisma.tag.update({
+      where: { id: parseInt(id) },
+      data: {
+        ...(name && { name: name.trim() }),
+        ...(color !== undefined && { color: color || null })
+      }
+    });
+
+    res.json(tag);
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Tag name already exists' });
+    }
+    console.error('Error updating tag:', error);
+    res.status(500).json({ error: 'Failed to update tag' });
+  }
+});
+
+// Delete a tag
+app.delete('/api/tags/:id', authenticateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.tag.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ message: 'Tag deleted successfully' });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+    console.error('Error deleting tag:', error);
+    res.status(500).json({ error: 'Failed to delete tag' });
+  }
+});
+
+// Add tags to a video
+app.post('/api/video/:id/tags', authenticateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tagIds } = req.body;
+
+    if (!Array.isArray(tagIds)) {
+      return res.status(400).json({ error: 'tagIds must be an array' });
+    }
+
+    // Create video-tag relationships
+    const videoTags = await Promise.all(
+      tagIds.map(tagId => 
+        prisma.videoTag.create({
+          data: {
+            videoAnalysisId: parseInt(id),
+            tagId: parseInt(tagId)
+          }
+        }).catch(err => {
+          if (err.code === 'P2002') {
+            // Tag already assigned, ignore
+            return null;
+          }
+          throw err;
+        })
+      )
+    );
+
+    // Return updated video with tags
+    const video = await prisma.videoAnalysis.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        tags: {
+          include: {
+            tag: true
+          }
+        }
+      }
+    });
+
+    res.json(video);
+  } catch (error) {
+    console.error('Error adding tags to video:', error);
+    res.status(500).json({ error: 'Failed to add tags to video' });
+  }
+});
+
+// Remove tag from video
+app.delete('/api/video/:videoId/tags/:tagId', authenticateApiKey, async (req, res) => {
+  try {
+    const { videoId, tagId } = req.params;
+
+    await prisma.videoTag.deleteMany({
+      where: {
+        videoAnalysisId: parseInt(videoId),
+        tagId: parseInt(tagId)
+      }
+    });
+
+    res.json({ message: 'Tag removed from video successfully' });
+  } catch (error) {
+    console.error('Error removing tag from video:', error);
+    res.status(500).json({ error: 'Failed to remove tag from video' });
   }
 });
 

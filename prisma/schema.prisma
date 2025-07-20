@@ -23,6 +23,7 @@ model VideoAnalysis {
   metadata    Json     // YouTube API response
   createdAt   DateTime @default(now())
   transcript  Transcript?
+  tags        VideoTag[]
   
   @@index([createdAt])
 }
@@ -34,4 +35,25 @@ model Transcript {
   content         String        @db.Text
   language        String?
   createdAt       DateTime      @default(now())
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String?  // Optional hex color for UI
+  createdAt DateTime @default(now())
+  videos    VideoTag[]
+}
+
+model VideoTag {
+  id              Int           @id @default(autoincrement())
+  videoAnalysisId Int
+  tagId           Int
+  videoAnalysis   VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+  tag             Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  
+  @@unique([videoAnalysisId, tagId])
+  @@index([videoAnalysisId])
+  @@index([tagId])
 }

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - YouTube To LLM</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' text-anchor='middle' font-size='80'>⚙️</text></svg>">
+    <meta name="description" content="Manage tags and settings for YouTube To LLM">
+</head>
+<body>
+    <div class="gradient-bg"></div>
+    <div class="gradient-overlay"></div>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>YouTube To LLM</h1>
+                    <p>Settings & Tag Management</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/" style="text-decoration: none;">
+                        <button style="background: rgba(99, 102, 241, 0.1); color: var(--primary-light); border: 1px solid rgba(99, 102, 241, 0.2);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            Home
+                        </button>
+                    </a>
+                    <button id="logoutButton" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Tag Statistics -->
+            <section class="tag-stats-section fade-in">
+                <h2>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    Tag Statistics
+                </h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalTagsCount">0</div>
+                        <div class="stat-label">Total Tags</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="usedTagsCount">0</div>
+                        <div class="stat-label">Used Tags</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="unusedTagsCount">0</div>
+                        <div class="stat-label">Unused Tags</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgTagsPerVideo">0</div>
+                        <div class="stat-label">Avg per Video</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Create New Tag -->
+            <section class="create-tag-section fade-in">
+                <h2>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Create New Tag
+                </h2>
+                <div class="new-tag-form">
+                    <input type="text" id="settingsNewTagName" placeholder="Tag name" maxlength="50">
+                    <input type="color" id="settingsNewTagColor" value="#6c757d" title="Tag color">
+                    <button onclick="createTagFromSettings()" class="primary-button">Create Tag</button>
+                </div>
+            </section>
+
+            <!-- Tag List -->
+            <section class="tags-list-section fade-in">
+                <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                            <line x1="7" y1="7" x2="7.01" y2="7"/>
+                        </svg>
+                        All Tags
+                    </span>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <select id="tagSortBy" onchange="refreshTagsList()" style="padding: 0.5rem 1rem; background: rgba(15, 23, 42, 0.5); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <option value="name-asc">Name A-Z</option>
+                            <option value="name-desc">Name Z-A</option>
+                            <option value="usage-desc">Most Used</option>
+                            <option value="usage-asc">Least Used</option>
+                            <option value="created-desc">Newest</option>
+                            <option value="created-asc">Oldest</option>
+                        </select>
+                        <button onclick="deleteUnusedTags()" class="delete-button" title="Delete all unused tags">
+                            🗑️ Delete Unused
+                        </button>
+                    </div>
+                </h2>
+                <div id="tagsList" class="tags-management-list">
+                    <!-- Tags will be loaded here -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>YouTube To LLM &copy; 2025 • Built with 💜</p>
+        </footer>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

@@ -18,12 +18,23 @@
                     <h1>YouTube To LLM</h1>
                     <p>Transform YouTube content into AI-ready data</p>
                 </div>
-                <button id="logoutButton" class="logout-button">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-                    </svg>
-                    Logout
-                </button>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/settings" style="text-decoration: none;">
+                        <button style="background: rgba(147, 51, 234, 0.1); color: #a78bfa; border: 1px solid rgba(147, 51, 234, 0.2);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M12 1v6m0 6v6m11-11h-6m-6 0H1m20.22-6.22l-4.24 4.24m-9.98 0L2.78 2.78m17.44 17.44l-4.24-4.24m-9.98 0L2.78 21.22"></path>
+                            </svg>
+                            Settings
+                        </button>
+                    </a>
+                    <button id="logoutButton" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
             </div>
         </header>
 

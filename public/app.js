@@ -52,7 +52,8 @@ async function checkAuth() {
             return;
         }
         
-        // Load previous analyses
+        // Load tags and previous analyses
+        await loadTags();
         loadPreviousAnalyses();
     } catch (error) {
         console.error('Auth check error:', error);
@@ -121,6 +122,7 @@ async function loadPreviousAnalyses() {
         if (!response.ok) return;
         
         const analyses = await response.json();
+        allVideos = analyses; // Store for tag management
         displayPreviousAnalyses(analyses);
         
     } catch (error) {
@@ -141,6 +143,15 @@ function displayPreviousAnalyses(analyses) {
                 <h4>${escapeHtml(analysis.title || 'Untitled')}</h4>
                 <p>${escapeHtml(analysis.channel || 'Unknown channel')}</p>
                 <small>${formatDate(analysis.createdAt)}</small>
+                ${analysis.tags && analysis.tags.length > 0 ? `
+                    <div class="video-tags">
+                        ${analysis.tags.map(vt => `
+                            <span class="tag" ${vt.tag.color ? `style="background-color: ${vt.tag.color}; color: ${getContrastColor(vt.tag.color)}"` : ''}>
+                                ${escapeHtml(vt.tag.name)}
+                            </span>
+                        `).join('')}
+                    </div>
+                ` : ''}
             </div>
             <div class="analysis-actions">
                 <button onclick="viewAnalysis('${analysis.id}')">
@@ -149,6 +160,9 @@ function displayPreviousAnalyses(analyses) {
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                     View
+                </button>
+                <button class="tag-button" onclick="showTagPicker(${analysis.id})" title="Manage tags">
+                    🏷️
                 </button>
                 <button class="delete-button" onclick="deleteAnalysis('${analysis.id}')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
@@ -331,3 +345,166 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Global variables for tags
+let allTags = [];
+let allVideos = [];
+
+// Tag management functions
+
+// Get contrast color for text on colored backgrounds
+function getContrastColor(hexColor) {
+    if (!hexColor) return '#333';
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000' : '#fff';
+}
+
+// Load all tags
+async function loadTags() {
+    try {
+        const response = await fetch('/api/tags', {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'X-API-Key': apiKey
+            }
+        });
+        
+        if (response.ok) {
+            allTags = await response.json();
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+// Show tag picker modal
+function showTagPicker(videoId) {
+    const video = allVideos.find(v => v.id === videoId);
+    if (!video) return;
+
+    const currentTags = video.tags || [];
+    const currentTagIds = new Set(currentTags.map(vt => vt.tag.id));
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Manage Tags for: ${escapeHtml(video.title)}</h3>
+                <button onclick="closeModal()" class="close-button">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="tag-section">
+                    <h4>Available Tags:</h4>
+                    <div class="tag-list">
+                        ${allTags.map(tag => `
+                            <label class="tag-checkbox-label">
+                                <input type="checkbox" 
+                                       value="${tag.id}" 
+                                       ${currentTagIds.has(tag.id) ? 'checked' : ''}
+                                       onchange="toggleTagForVideo(${videoId}, ${tag.id}, this.checked)">
+                                <span class="tag" ${tag.color ? `style="background-color: ${tag.color}; color: ${getContrastColor(tag.color)}"` : ''}>
+                                    ${escapeHtml(tag.name)}
+                                </span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="tag-section">
+                    <h4>Create New Tag:</h4>
+                    <div class="new-tag-form">
+                        <input type="text" id="newTagName" placeholder="Tag name" maxlength="50">
+                        <input type="color" id="newTagColor" value="#6c757d" title="Tag color">
+                        <button onclick="createNewTag(${videoId})" class="primary-button">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Toggle tag for video
+async function toggleTagForVideo(videoId, tagId, isChecked) {
+    try {
+        if (isChecked) {
+            // Add tag to video
+            await fetch(`/api/video/${videoId}/tags`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`,
+                    'X-API-Key': apiKey
+                },
+                body: JSON.stringify({ tagIds: [tagId] })
+            });
+        } else {
+            // Remove tag from video
+            await fetch(`/api/video/${videoId}/tags/${tagId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'X-API-Key': apiKey
+                }
+            });
+        }
+
+        // Refresh videos and tags to update UI
+        await loadPreviousAnalyses();
+        await loadTags();
+    } catch (error) {
+        console.error('Error updating video tags:', error);
+    }
+}
+
+// Create new tag
+async function createNewTag(videoId) {
+    const name = document.getElementById('newTagName').value.trim();
+    const color = document.getElementById('newTagColor').value;
+
+    if (!name) {
+        alert('Please enter a tag name');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/tags', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-API-Key': apiKey
+            },
+            body: JSON.stringify({ name, color })
+        });
+
+        if (response.ok) {
+            const newTag = await response.json();
+            await loadTags();
+            
+            // Add the new tag to the video
+            await toggleTagForVideo(videoId, newTag.id, true);
+            
+            // Close modal and refresh
+            closeModal();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Failed to create tag');
+        }
+    } catch (error) {
+        console.error('Error creating tag:', error);
+        alert('Failed to create tag');
+    }
+}
+
+// Close modal
+function closeModal() {
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) {
+        modal.remove();
+    }
+}
