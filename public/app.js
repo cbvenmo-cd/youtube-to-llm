@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Check authentication status
 async function checkAuth() {
     if (!authToken) {
-        window.location.href = '/login.html';
+        window.location.href = '/login';
         return;
     }
     
@@ -48,7 +48,7 @@ async function checkAuth() {
         
         if (!response.ok) {
             localStorage.removeItem('yva_auth_token');
-            window.location.href = '/login.html';
+            window.location.href = '/login';
             return;
         }
         
@@ -56,7 +56,7 @@ async function checkAuth() {
         loadPreviousAnalyses();
     } catch (error) {
         console.error('Auth check error:', error);
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     }
 }
 
@@ -96,7 +96,7 @@ async function handleAnalyze(e) {
         
         // Redirect to the video detail page after a short delay
         setTimeout(() => {
-            window.location.href = `/video.html?id=${data.id}`;
+            window.location.href = `/video?id=${data.id}`;
         }, 1500);
         
     } catch (error) {
@@ -167,7 +167,7 @@ function displayPreviousAnalyses(analyses) {
 // View analysis
 function viewAnalysis(id) {
     // Navigate to the dedicated video detail page
-    window.location.href = `/video.html?id=${id}`;
+    window.location.href = `/video?id=${id}`;
 }
 
 // Delete analysis
@@ -211,7 +211,7 @@ async function deleteAnalysis(id) {
 function handleLogout() {
     localStorage.removeItem('yva_auth_token');
     localStorage.removeItem('yva_api_key');
-    window.location.href = '/login.html';
+    window.location.href = '/login';
 }
 
 // UI Helper Functions

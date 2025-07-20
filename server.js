@@ -28,7 +28,12 @@ const sessions = new Map();
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+
+// Custom static file serving to handle clean URLs
+app.use(express.static('public', {
+  extensions: ['html'],
+  index: false  // We'll handle index routing ourselves
+}));
 
 // Generate session token
 function generateToken() {
@@ -303,11 +308,34 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Serve main app page with auth check
+// HTML Page Routes (clean URLs without .html extension)
 app.get('/', (req, res) => {
-  // Simply serve the index.html file
-  // Authentication is handled client-side via JavaScript
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/video', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'video.html'));
+});
+
+app.get('/video/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'video.html'));
+});
+
+// Redirect old .html URLs to clean URLs
+app.get('/login.html', (req, res) => {
+  res.redirect(301, '/login');
+});
+
+app.get('/video.html', (req, res) => {
+  res.redirect(301, '/video');
+});
+
+app.get('/index.html', (req, res) => {
+  res.redirect(301, '/');
 });
 
 // Health check endpoint

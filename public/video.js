@@ -24,7 +24,7 @@ const STOP_WORDS = new Set([
 document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
     if (!authToken) {
-        window.location.href = '/login.html';
+        window.location.href = '/login';
         return;
     }
     
@@ -54,7 +54,7 @@ function setupEventListeners() {
     document.getElementById('logoutButton').addEventListener('click', () => {
         localStorage.removeItem('yva_auth_token');
         localStorage.removeItem('yva_api_key');
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     });
     
     // Tab navigation
