@@ -199,6 +199,40 @@ header p {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
+/* Logo Styles */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+@keyframes logoShine {
+    0% { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) brightness(1); }
+    50% { filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.4)) brightness(1.1); }
+    100% { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) brightness(1); }
+}
+
+.header-logo:hover {
+    transform: scale(1.05) rotate(5deg);
+    animation: logoShine 0.6s ease-in-out;
+}
+
+.login-logo {
+    max-width: 280px;
+    height: auto;
+    margin: 0 auto 1.5rem;
+    display: block;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
 /* Main Content */
 main {
     flex: 1;
@@ -778,13 +812,26 @@ footer {
         align-items: stretch;
     }
     
+    .logo-container {
+        justify-content: center;
+    }
+    
+    .header-logo {
+        width: 40px;
+        height: 40px;
+    }
+    
     header h1 {
         font-size: 1.5rem;
-        text-align: center;
+        text-align: left;
     }
     
     header p {
         display: none;
+    }
+    
+    .login-logo {
+        max-width: 220px;
     }
     
     .logout-button {
@@ -1317,6 +1364,105 @@ footer {
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
+/* All Analyses Section Styles */
+.all-analyses {
+    margin-top: 3rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(147, 51, 234, 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(147, 51, 234, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.toggle-button:hover {
+    background: rgba(147, 51, 234, 0.15);
+    transform: translateY(-1px);
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.toggle-button.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.all-analyses-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.all-analyses-content.hidden {
+    max-height: 0;
+    opacity: 0;
+}
+
+.all-analyses-content:not(.hidden) {
+    max-height: 2000px;
+    opacity: 1;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.pagination-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.625rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: var(--text-muted);
+}
+
+.page-info {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
 /* Mobile styles for tags and modals */
 @media (max-width: 768px) {
     .video-tags {
@@ -1353,6 +1499,36 @@ footer {
     
     .tag-button {
         padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .toggle-button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pagination-controls {
+        gap: 0.75rem;
+        padding-top: 1.5rem;
+    }
+    
+    .pagination-button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .pagination-button svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .page-info {
         font-size: 0.8rem;
     }
 }

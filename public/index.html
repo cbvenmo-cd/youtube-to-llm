@@ -4,9 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube To LLM - Extract & Analyze YouTube Content</title>
+    <meta name="description" content="Extract metadata and transcripts from YouTube videos for AI analysis. Transform YouTube content into AI-ready data.">
+    <meta name="keywords" content="YouTube, transcript, AI, analysis, video, metadata, extraction">
+    <meta name="author" content="YouTube To LLM">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="YouTube To LLM - Extract & Analyze YouTube Content">
+    <meta property="og:description" content="Transform YouTube content into AI-ready data. Extract metadata and transcripts from YouTube videos for AI analysis.">
+    <meta property="og:image" content="/img/logo-with-text.png">
+    <meta property="og:type" content="website">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#6366f1">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' text-anchor='middle' font-size='80'>🎥</text></svg>">
-    <meta name="description" content="Extract metadata and transcripts from YouTube videos for AI analysis">
 </head>
 <body>
     <div class="gradient-bg"></div>
@@ -14,9 +30,12 @@
     <div class="container">
         <header>
             <div class="header-content">
-                <div>
-                    <h1>YouTube To LLM</h1>
-                    <p>Transform YouTube content into AI-ready data</p>
+                <div class="logo-container">
+                    <img src="/img/logo-no-text.png" alt="YouTube To LLM Logo" class="header-logo">
+                    <div>
+                        <h1>YouTube To LLM</h1>
+                        <p>Transform YouTube content into AI-ready data</p>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 1rem;">
                     <a href="/settings" style="text-decoration: none;">
@@ -94,6 +113,46 @@
                 </h2>
                 <div id="analysesList" class="analyses-list">
                     <p class="empty-state">No analyses yet. Start by analyzing a YouTube video above.</p>
+                </div>
+            </section>
+
+            <!-- All Analyses Section -->
+            <section class="all-analyses fade-in">
+                <div class="section-header">
+                    <h2>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="9" x2="15" y2="9"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        All Analyses
+                    </h2>
+                    <button id="toggleAllAnalyses" class="toggle-button">
+                        <span class="toggle-text">Show All</span>
+                        <svg class="toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="allAnalysesContent" class="all-analyses-content hidden">
+                    <div id="allAnalysesList" class="analyses-list">
+                        <p class="empty-state">Loading...</p>
+                    </div>
+                    <div id="paginationControls" class="pagination-controls hidden">
+                        <button id="prevPage" class="pagination-button" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Previous
+                        </button>
+                        <span id="pageInfo" class="page-info">Page 1</span>
+                        <button id="nextPage" class="pagination-button">
+                            Next
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>
