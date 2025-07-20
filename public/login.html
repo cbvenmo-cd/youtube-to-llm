@@ -3,86 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - YouTube Video Analyzer</title>
+    <title>Login - YouTube To LLM</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 2rem;
-            background: #f9f9f9;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .login-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .login-header h1 {
-            color: #333;
-            margin-bottom: 0.5rem;
-        }
-        .login-header p {
-            color: #666;
-            font-size: 0.9rem;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .form-group label {
-            font-weight: 500;
-            color: #333;
-        }
-        .form-group input {
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        .login-button {
-            padding: 0.75rem;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .login-button:hover {
-            background: #0056b3;
-        }
-        .login-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .error-message {
-            color: #dc3545;
-            font-size: 0.9rem;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        .success-message {
-            color: #28a745;
-            font-size: 0.9rem;
-            text-align: center;
-            margin-top: 1rem;
-        }
-    </style>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' text-anchor='middle' font-size='80'>🎥</text></svg>">
 </head>
 <body>
+    <div class="gradient-bg"></div>
+    <div class="gradient-overlay"></div>
     <div class="container">
         <div class="login-container">
             <div class="login-header">
-                <h1>YouTube Video Analyzer</h1>
-                <p>Please enter your API key to continue</p>
+                <h1>YouTube To LLM</h1>
+                <p>Enter your API key to continue</p>
             </div>
             
             <form id="loginForm" class="login-form">
@@ -99,6 +31,11 @@
                 </div>
                 
                 <button type="submit" id="loginButton" class="login-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
                     Login
                 </button>
             </form>

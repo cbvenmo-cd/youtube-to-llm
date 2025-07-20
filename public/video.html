@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis - YouTube To LLM</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="video-detail.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' text-anchor='middle' font-size='80'>🎥</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="gradient-bg"></div>
+    <div class="gradient-overlay"></div>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1><a href="/" style="text-decoration: none; color: inherit;">YouTube To LLM</a></h1>
+                    <p>Video Analysis Dashboard</p>
+                </div>
+                <div class="header-actions">
+                    <button id="backButton" class="secondary-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to List
+                    </button>
+                    <button id="logoutButton" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="skeleton-loader">
+                <div class="skeleton-header"></div>
+                <div class="skeleton-video"></div>
+                <div class="skeleton-stats"></div>
+                <div class="skeleton-content"></div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main id="mainContent" class="video-detail-main hidden">
+            <!-- Video Header Section -->
+            <section class="video-header-section">
+                <div class="video-header-content">
+                    <div class="video-thumbnail-container">
+                        <img id="videoThumbnail" class="video-thumbnail" alt="Video thumbnail">
+                        <a id="playButton" class="play-button" target="_blank" rel="noopener noreferrer">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="video-info-primary">
+                        <h1 id="videoTitle" class="video-title"></h1>
+                        <div class="channel-info">
+                            <div class="channel-avatar" id="channelAvatar"></div>
+                            <div>
+                                <h2 id="channelName" class="channel-name"></h2>
+                                <p id="publishDate" class="publish-date"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics Dashboard -->
+            <section class="stats-dashboard">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Views</h3>
+                        <p id="viewCount" class="stat-value">-</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Likes</h3>
+                        <p id="likeCount" class="stat-value">-</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Duration</h3>
+                        <p id="duration" class="stat-value">-</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Comments</h3>
+                        <p id="commentCount" class="stat-value">-</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab Navigation -->
+            <nav class="tab-navigation">
+                <button class="tab-button active" data-tab="overview">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="9" y1="9" x2="15" y2="9"/>
+                        <line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                    Overview
+                </button>
+                <button class="tab-button" data-tab="transcript">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Transcript
+                </button>
+                <button class="tab-button" data-tab="analytics">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    Analytics
+                </button>
+                <button class="tab-button" data-tab="export">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export
+                </button>
+            </nav>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Overview Tab -->
+                <div id="overviewTab" class="tab-panel active">
+                    <div class="overview-grid">
+                        <!-- Description -->
+                        <div class="card description-card">
+                            <h3>Description</h3>
+                            <div id="videoDescription" class="video-description"></div>
+                            <button id="toggleDescription" class="text-button">Show more</button>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="card tags-card">
+                            <h3>Tags</h3>
+                            <div id="videoTags" class="tags-container"></div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="card quick-stats-card">
+                            <h3>Quick Analysis</h3>
+                            <div class="quick-stats">
+                                <div class="quick-stat">
+                                    <span class="label">Transcript Words</span>
+                                    <span id="wordCount" class="value">-</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Reading Time</span>
+                                    <span id="readingTime" class="value">-</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Language</span>
+                                    <span id="language" class="value">-</span>
+                                </div>
+                                <div class="quick-stat">
+                                    <span class="label">Analyzed</span>
+                                    <span id="analyzedDate" class="value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transcript Tab -->
+                <div id="transcriptTab" class="tab-panel">
+                    <div class="transcript-toolbar">
+                        <div class="search-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <input type="text" id="transcriptSearch" placeholder="Search transcript...">
+                        </div>
+                        <div class="transcript-actions">
+                            <button id="copyTranscript" class="action-button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div id="transcriptContent" class="transcript-content"></div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-panel">
+                    <div class="analytics-grid">
+                        <!-- Word Frequency Chart -->
+                        <div class="card chart-card">
+                            <h3>Most Frequent Words</h3>
+                            <canvas id="wordFrequencyChart"></canvas>
+                        </div>
+
+                        <!-- Engagement Metrics -->
+                        <div class="card chart-card">
+                            <h3>Engagement Metrics</h3>
+                            <canvas id="engagementChart"></canvas>
+                        </div>
+
+                        <!-- Text Statistics -->
+                        <div class="card">
+                            <h3>Text Analysis</h3>
+                            <div class="text-stats">
+                                <div class="text-stat">
+                                    <span class="label">Unique Words</span>
+                                    <span id="uniqueWords" class="value">-</span>
+                                </div>
+                                <div class="text-stat">
+                                    <span class="label">Average Word Length</span>
+                                    <span id="avgWordLength" class="value">-</span>
+                                </div>
+                                <div class="text-stat">
+                                    <span class="label">Sentences</span>
+                                    <span id="sentenceCount" class="value">-</span>
+                                </div>
+                                <div class="text-stat">
+                                    <span class="label">Lexical Diversity</span>
+                                    <span id="lexicalDiversity" class="value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Tab -->
+                <div id="exportTab" class="tab-panel">
+                    <div class="export-grid">
+                        <div class="export-option">
+                            <h3>JSON Export</h3>
+                            <p>Complete analysis data in JSON format</p>
+                            <button id="exportJson" class="primary-button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Download JSON
+                            </button>
+                        </div>
+                        <div class="export-option">
+                            <h3>Transcript Export</h3>
+                            <p>Plain text transcript file</p>
+                            <button id="exportTranscript" class="primary-button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                Download Text
+                            </button>
+                        </div>
+                        <div class="export-option">
+                            <h3>Markdown Export</h3>
+                            <p>Formatted analysis in Markdown</p>
+                            <button id="exportMarkdown" class="primary-button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <path d="M7 12h2l2 3 2-6 2 3h2"/>
+                                </svg>
+                                Download Markdown
+                            </button>
+                        </div>
+                        <div class="export-option">
+                            <h3>Share Link</h3>
+                            <p>Share this analysis with others</p>
+                            <button id="shareLink" class="primary-button">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                    <polyline points="16 6 12 2 8 6"/>
+                                    <line x1="12" y1="2" x2="12" y2="15"/>
+                                </svg>
+                                Copy Share Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>YouTube To LLM &copy; 2025 • Built with 💜</p>
+        </footer>
+    </div>
+
+    <script src="video.js"></script>
+</body>
+</html>

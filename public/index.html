@@ -3,65 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Video Analyzer</title>
+    <title>YouTube To LLM - Extract & Analyze YouTube Content</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' text-anchor='middle' font-size='80'>🎥</text></svg>">
+    <meta name="description" content="Extract metadata and transcripts from YouTube videos for AI analysis">
 </head>
 <body>
+    <div class="gradient-bg"></div>
+    <div class="gradient-overlay"></div>
     <div class="container">
         <header>
             <div class="header-content">
                 <div>
-                    <h1>YouTube Video Analyzer</h1>
-                    <p>Extract metadata and transcripts from YouTube videos</p>
+                    <h1>YouTube To LLM</h1>
+                    <p>Transform YouTube content into AI-ready data</p>
                 </div>
-                <button id="logoutButton" class="logout-button">Logout</button>
+                <button id="logoutButton" class="logout-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 6px;">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+                    </svg>
+                    Logout
+                </button>
             </div>
         </header>
 
         <main>
-
             <!-- Video Analysis Form -->
-            <section class="analysis-section">
+            <section class="analysis-section fade-in">
                 <form id="analyzeForm">
                     <div class="form-group">
-                        <label for="videoUrl">YouTube Video URL:</label>
+                        <label for="videoUrl">YouTube Video URL</label>
                         <input 
                             type="url" 
                             id="videoUrl" 
                             placeholder="https://www.youtube.com/watch?v=..." 
                             required 
+                            autocomplete="off"
                         />
                     </div>
-                    <button type="submit" id="analyzeButton">Analyze Video</button>
+                    <button type="submit" id="analyzeButton">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        Analyze Video
+                    </button>
                 </form>
             </section>
 
             <!-- Loading Indicator -->
             <div id="loadingIndicator" class="loading hidden">
                 <div class="spinner"></div>
-                <p>Analyzing video...</p>
+                <p>Extracting video data...</p>
             </div>
 
-            <!-- Results Section -->
-            <section id="resultsSection" class="results-section hidden">
-                <h2>Analysis Results</h2>
-                
-                <!-- Video Info -->
-                <div class="video-info">
-                    <h3>Video Information</h3>
-                    <div id="videoMetadata"></div>
-                </div>
-
-                <!-- Transcript -->
-                <div class="transcript-section">
-                    <h3>Transcript</h3>
-                    <div id="transcriptContent"></div>
-                </div>
-
-                <!-- Export Options -->
-                <div class="export-section">
-                    <button id="copyJson" class="export-button">Copy as JSON</button>
-                    <button id="downloadJson" class="export-button">Download JSON</button>
+            <!-- Success Message Section -->
+            <section id="successMessage" class="success-message hidden">
+                <div class="success-content">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <h3>Analysis Complete!</h3>
+                    <p>Redirecting to results...</p>
                 </div>
             </section>
 
@@ -69,16 +73,22 @@
             <div id="errorMessage" class="error-message hidden"></div>
 
             <!-- Previous Analyses -->
-            <section class="previous-analyses">
-                <h2>Previous Analyses</h2>
+            <section class="previous-analyses fade-in">
+                <h2>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Recent Analyses
+                </h2>
                 <div id="analysesList" class="analyses-list">
-                    <p class="empty-state">No previous analyses found</p>
+                    <p class="empty-state">No analyses yet. Start by analyzing a YouTube video above.</p>
                 </div>
             </section>
         </main>
 
         <footer>
-            <p>YouTube Video Analyzer &copy; 2024</p>
+            <p>YouTube To LLM &copy; 2025 • Built with 💜</p>
         </footer>
     </div>
 

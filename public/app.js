@@ -1,4 +1,4 @@
-// YouTube Video Analyzer - Frontend JavaScript
+// YouTube To LLM - Enhanced Frontend JavaScript
 
 // Global state
 let authToken = localStorage.getItem('yva_auth_token') || '';
@@ -10,13 +10,9 @@ const analyzeForm = document.getElementById('analyzeForm');
 const videoUrlInput = document.getElementById('videoUrl');
 const analyzeButton = document.getElementById('analyzeButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
-const resultsSection = document.getElementById('resultsSection');
-const videoMetadata = document.getElementById('videoMetadata');
-const transcriptContent = document.getElementById('transcriptContent');
 const errorMessage = document.getElementById('errorMessage');
 const analysesList = document.getElementById('analysesList');
-const copyJsonButton = document.getElementById('copyJson');
-const downloadJsonButton = document.getElementById('downloadJson');
+const successMessage = document.getElementById('successMessage');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,14 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Event listeners
     analyzeForm.addEventListener('submit', handleAnalyze);
-    copyJsonButton.addEventListener('click', copyToClipboard);
-    downloadJsonButton.addEventListener('click', downloadJson);
     
     // Add logout button functionality if exists
     const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
         logoutButton.addEventListener('click', handleLogout);
     }
+    
+    // Add smooth transitions
+    addSmoothTransitions();
 });
 
 // Check authentication status
@@ -50,85 +47,58 @@ async function checkAuth() {
         });
         
         if (!response.ok) {
-            throw new Error('Invalid session');
+            localStorage.removeItem('yva_auth_token');
+            window.location.href = '/login.html';
+            return;
         }
         
-        // Authentication successful, load previous analyses
+        // Load previous analyses
         loadPreviousAnalyses();
     } catch (error) {
-        // Invalid token, redirect to login
-        localStorage.removeItem('yva_auth_token');
-        localStorage.removeItem('yva_api_key');
+        console.error('Auth check error:', error);
         window.location.href = '/login.html';
     }
 }
 
-// Handle logout
-async function handleLogout() {
-    try {
-        await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-    } catch (error) {
-        console.error('Logout error:', error);
-    }
-    
-    // Clear local storage and redirect
-    localStorage.removeItem('yva_auth_token');
-    localStorage.removeItem('yva_api_key');
-    window.location.href = '/login.html';
-}
-
-// Helper function to get auth headers
-function getAuthHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-        'X-API-Key': apiKey // Include API key for backward compatibility
-    };
-}
-
-// Video Analysis
+// Handle video analysis
 async function handleAnalyze(e) {
     e.preventDefault();
-
+    
     const videoUrl = videoUrlInput.value.trim();
-    if (!videoUrl) {
-        showError('Please enter a YouTube video URL');
-        return;
-    }
-
-    // Show loading
+    if (!videoUrl) return;
+    
+    // UI feedback
     showLoading(true);
     hideError();
-    hideResults();
-
+    
     try {
         const response = await fetch('/api/video/analyze', {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                'X-API-Key': apiKey
+            },
             body: JSON.stringify({ url: videoUrl })
         });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                // Session expired, redirect to login
-                localStorage.removeItem('yva_auth_token');
-                localStorage.removeItem('yva_api_key');
-                window.location.href = '/login.html';
-                return;
-            }
-            const error = await response.json();
-            throw new Error(error.error || 'Analysis failed');
-        }
-
+        
         const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to analyze video');
+        }
+        
         currentAnalysis = data;
-        displayResults(data);
-        loadPreviousAnalyses();
+        
+        // Show success message
+        showLoading(false);
+        successMessage.classList.remove('hidden');
+        
+        // Redirect to the video detail page after a short delay
+        setTimeout(() => {
+            window.location.href = `/video.html?id=${data.id}`;
+        }, 1500);
+        
     } catch (error) {
         showError(error.message);
     } finally {
@@ -136,191 +106,166 @@ async function handleAnalyze(e) {
     }
 }
 
-// Display Functions
-function displayResults(data) {
-    // Display video metadata
-    videoMetadata.innerHTML = `
-        <div class="metadata-item">
-            <strong>Title:</strong> ${escapeHtml(data.title || 'N/A')}
-        </div>
-        <div class="metadata-item">
-            <strong>Channel:</strong> ${escapeHtml(data.channel || 'N/A')}
-        </div>
-        <div class="metadata-item">
-            <strong>Video ID:</strong> ${escapeHtml(data.videoId || 'N/A')}
-        </div>
-        <div class="metadata-item">
-            <strong>Duration:</strong> ${data.metadata ? (formatDuration(data.metadata.duration) || 'N/A') : 'N/A'}
-        </div>
-    `;
 
-    // Display transcript
-    if (data.transcript && data.transcript.content) {
-        transcriptContent.innerHTML = `
-            <div class="transcript-text">
-                ${escapeHtml(data.transcript.content)}
-            </div>
-        `;
-    } else {
-        transcriptContent.innerHTML = '<p class="no-transcript">No transcript available</p>';
-    }
 
-    showResults();
-}
-
+// Load previous analyses
 async function loadPreviousAnalyses() {
     try {
         const response = await fetch('/api/videos', {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                // Session expired, redirect to login
-                localStorage.removeItem('yva_auth_token');
-                localStorage.removeItem('yva_api_key');
-                window.location.href = '/login.html';
-                return;
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'X-API-Key': apiKey
             }
-            return;
-        }
-
-        const data = await response.json();
-        displayAnalysesList(data);
+        });
+        
+        if (!response.ok) return;
+        
+        const analyses = await response.json();
+        displayPreviousAnalyses(analyses);
+        
     } catch (error) {
         console.error('Failed to load previous analyses:', error);
     }
 }
 
-function displayAnalysesList(analyses) {
+// Display previous analyses
+function displayPreviousAnalyses(analyses) {
     if (!analyses || analyses.length === 0) {
-        analysesList.innerHTML = '<p class="empty-state">No previous analyses found</p>';
+        analysesList.innerHTML = '<p class="empty-state">No analyses yet. Start by analyzing a YouTube video above.</p>';
         return;
     }
-
-    analysesList.innerHTML = analyses.map(analysis => `
+    
+    const html = analyses.map(analysis => `
         <div class="analysis-item" data-id="${analysis.id}">
             <div class="analysis-info">
-                <h4>${escapeHtml(analysis.title)}</h4>
-                <p>${escapeHtml(analysis.channel)}</p>
-                <small>${new Date(analysis.createdAt).toLocaleString()}</small>
+                <h4>${escapeHtml(analysis.title || 'Untitled')}</h4>
+                <p>${escapeHtml(analysis.channel || 'Unknown channel')}</p>
+                <small>${formatDate(analysis.createdAt)}</small>
             </div>
             <div class="analysis-actions">
-                <button onclick="viewAnalysis(${analysis.id})">View</button>
-                <button onclick="deleteAnalysis(${analysis.id})" class="delete-button">Delete</button>
+                <button onclick="viewAnalysis('${analysis.id}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    View
+                </button>
+                <button class="delete-button" onclick="deleteAnalysis('${analysis.id}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    Delete
+                </button>
             </div>
         </div>
     `).join('');
+    
+    analysesList.innerHTML = html;
 }
 
-// Export Functions
-function copyToClipboard() {
-    if (!currentAnalysis) return;
-
-    const jsonString = JSON.stringify(currentAnalysis, null, 2);
-    navigator.clipboard.writeText(jsonString).then(() => {
-        showError('Copied to clipboard!', 'success');
-    }).catch(() => {
-        showError('Failed to copy to clipboard');
-    });
+// View analysis
+function viewAnalysis(id) {
+    // Navigate to the dedicated video detail page
+    window.location.href = `/video.html?id=${id}`;
 }
 
-function downloadJson() {
-    if (!currentAnalysis) return;
-
-    const jsonString = JSON.stringify(currentAnalysis, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `youtube-analysis-${currentAnalysis.videoId || 'unknown'}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Global Functions (for onclick handlers)
-window.viewAnalysis = async function(id) {
-    try {
-        const response = await fetch(`/api/video/${id}`, {
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('yva_auth_token');
-                localStorage.removeItem('yva_api_key');
-                window.location.href = '/login.html';
-                return;
-            }
-            throw new Error('Failed to load analysis');
-        }
-
-        const data = await response.json();
-        currentAnalysis = data;
-        displayResults(data);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-        showError(error.message);
-    }
-};
-
-window.deleteAnalysis = async function(id) {
+// Delete analysis
+async function deleteAnalysis(id) {
     if (!confirm('Are you sure you want to delete this analysis?')) return;
-
+    
     try {
         const response = await fetch(`/api/video/${id}`, {
             method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('yva_auth_token');
-                localStorage.removeItem('yva_api_key');
-                window.location.href = '/login.html';
-                return;
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'X-API-Key': apiKey
             }
+        });
+        
+        if (!response.ok) {
             throw new Error('Failed to delete analysis');
         }
-
-        loadPreviousAnalyses();
+        
+        // Remove from UI with animation
+        const item = document.querySelector(`[data-id="${id}"]`);
+        if (item) {
+            item.style.animation = 'slideOut 0.3s ease-out forwards';
+            setTimeout(() => {
+                item.remove();
+                // Check if list is empty
+                if (analysesList.children.length === 0) {
+                    analysesList.innerHTML = '<p class="empty-state">No analyses yet. Start by analyzing a YouTube video above.</p>';
+                }
+            }, 300);
+        }
+        
     } catch (error) {
         showError(error.message);
     }
-};
-
-// Utility Functions
-function showLoading(show) {
-    loadingIndicator.classList.toggle('hidden', !show);
-    analyzeButton.disabled = show;
 }
 
-function showError(message, type = 'error') {
-    errorMessage.textContent = message;
-    errorMessage.className = `error-message ${type === 'success' ? 'success' : ''} ${type === 'error' ? '' : 'hidden'}`;
-    if (type === 'success') {
-        setTimeout(() => hideError(), 3000);
+
+
+// Handle logout
+function handleLogout() {
+    localStorage.removeItem('yva_auth_token');
+    localStorage.removeItem('yva_api_key');
+    window.location.href = '/login.html';
+}
+
+// UI Helper Functions
+function showLoading(show) {
+    if (show) {
+        loadingIndicator.classList.remove('hidden');
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = 'Analyzing...';
+    } else {
+        loadingIndicator.classList.add('hidden');
+        analyzeButton.disabled = false;
+        analyzeButton.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            Analyze Video
+        `;
     }
+}
+
+function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.classList.remove('hidden');
+    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Auto-hide after 5 seconds
+    setTimeout(hideError, 5000);
 }
 
 function hideError() {
     errorMessage.classList.add('hidden');
 }
 
-function showResults() {
-    resultsSection.classList.remove('hidden');
-}
 
-function hideResults() {
-    resultsSection.classList.add('hidden');
-}
 
+// Utility Functions
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Parse ISO 8601 duration to seconds
+function parseDuration(duration) {
+    if (!duration) return null;
+    const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+    if (!match) return 0;
+    
+    const hours = (match[1] || '').replace('H', '') || 0;
+    const minutes = (match[2] || '').replace('M', '') || 0;
+    const seconds = (match[3] || '').replace('S', '') || 0;
+    
+    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds);
 }
 
 function formatDuration(seconds) {
@@ -330,7 +275,59 @@ function formatDuration(seconds) {
     const secs = seconds % 60;
     
     if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return `${hours}h ${minutes}m ${secs}s`;
     }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes}m ${secs}s`;
 }
+
+function formatNumber(num) {
+    if (!num) return null;
+    return new Intl.NumberFormat().format(num);
+}
+
+function formatDate(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+// Add smooth transitions
+function addSmoothTransitions() {
+    // Add hover effects to all buttons
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Add focus effects to inputs
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    });
+}
+
+// Add slide out animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideOut {
+        to {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+    }
+`;
+document.head.appendChild(style);

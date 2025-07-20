@@ -1,4 +1,4 @@
-// YouTube Video Analyzer - Main Server
+// YouTube To LLM - Main Server
 // This file will contain all the Express server logic, API endpoints, and integrations
 
 const dns = require('dns');
@@ -28,15 +28,7 @@ const sessions = new Map();
 
 // Middleware
 app.use(express.json());
-
-// Serve static files except for the root route
-app.use((req, res, next) => {
-  if (req.path === '/' || req.path === '/index.html') {
-    // Handle root route separately to check authentication
-    return next();
-  }
-  express.static('public')(req, res, next);
-});
+app.use(express.static('public'));
 
 // Generate session token
 function generateToken() {
@@ -313,18 +305,8 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Serve main app page with auth check
 app.get('/', (req, res) => {
-  const authHeader = req.headers['authorization'] || req.headers['cookie'];
-  const token = authHeader && authHeader.includes('yva_auth_token=') 
-    ? authHeader.split('yva_auth_token=')[1].split(';')[0] 
-    : null;
-  
-  // For initial page load, check if user has valid session
-  if (!token || !sessions.has(token)) {
-    // Redirect to login page
-    return res.redirect('/login.html');
-  }
-  
-  // Serve the main app
+  // Simply serve the index.html file
+  // Authentication is handled client-side via JavaScript
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
