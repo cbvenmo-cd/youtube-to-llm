@@ -4,21 +4,9 @@
 let authToken = localStorage.getItem('yva_auth_token') || '';
 let apiKey = localStorage.getItem('yva_api_key') || '';
 let currentVideo = null;
-let charts = {};
 
-// Common words to exclude from frequency analysis
-const STOP_WORDS = new Set([
-    'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 
-    'on', 'with', 'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from',
-    'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would',
-    'there', 'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which',
-    'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know',
-    'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see',
-    'other', 'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think',
-    'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well',
-    'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
-    'is', 'was', 'are', 'been', 'has', 'had', 'were', 'said', 'did', 'getting', 'made', 'being'
-]);
+
+
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -185,9 +173,6 @@ function populateVideoData() {
         
         // Populate transcript
         populateTranscript();
-        
-        // Generate analytics
-        generateAnalytics();
     } else {
         document.getElementById('wordCount').textContent = '0';
         document.getElementById('readingTime').textContent = '0 min';
@@ -229,149 +214,7 @@ function splitIntoParagraphs(text) {
     return paragraphs.filter(p => p.length > 0);
 }
 
-// Generate analytics
-function generateAnalytics() {
-    if (!currentVideo.transcript) return;
-    
-    const text = currentVideo.transcript.content;
-    
-    // Text statistics
-    const words = text.toLowerCase().match(/\b[a-z]+\b/g) || [];
-    const uniqueWords = new Set(words);
-    const sentences = text.match(/[.!?]+/g) || [];
-    const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
-    const lexicalDiversity = (uniqueWords.size / words.length) * 100;
-    
-    document.getElementById('uniqueWords').textContent = formatNumber(uniqueWords.size);
-    document.getElementById('avgWordLength').textContent = avgWordLength.toFixed(1);
-    document.getElementById('sentenceCount').textContent = formatNumber(sentences.length);
-    document.getElementById('lexicalDiversity').textContent = lexicalDiversity.toFixed(1) + '%';
-    
-    // Word frequency analysis
-    const wordFrequency = {};
-    words.forEach(word => {
-        if (!STOP_WORDS.has(word) && word.length > 3) {
-            wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-        }
-    });
-    
-    // Get top 10 words
-    const topWords = Object.entries(wordFrequency)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
-    
-    // Create word frequency chart
-    createWordFrequencyChart(topWords);
-    
-    // Create engagement chart
-    createEngagementChart();
-}
 
-// Create word frequency chart
-function createWordFrequencyChart(topWords) {
-    const ctx = document.getElementById('wordFrequencyChart').getContext('2d');
-    
-    if (charts.wordFrequency) {
-        charts.wordFrequency.destroy();
-    }
-    
-    charts.wordFrequency = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: topWords.map(([word]) => word),
-            datasets: [{
-                label: 'Frequency',
-                data: topWords.map(([, count]) => count),
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                borderColor: 'rgba(99, 102, 241, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(148, 163, 184, 0.1)'
-                    },
-                    ticks: {
-                        color: 'rgba(148, 163, 184, 0.8)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: 'rgba(148, 163, 184, 0.8)'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Create engagement chart
-function createEngagementChart() {
-    const ctx = document.getElementById('engagementChart').getContext('2d');
-    
-    const statistics = currentVideo.metadata?.statistics || {};
-    const views = parseInt(statistics.viewCount) || 1;
-    const likes = parseInt(statistics.likeCount) || 0;
-    const comments = parseInt(statistics.commentCount) || 0;
-    
-    const engagementRate = ((likes + comments) / views * 100).toFixed(2);
-    
-    if (charts.engagement) {
-        charts.engagement.destroy();
-    }
-    
-    charts.engagement = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Engaged', 'Views Only'],
-            datasets: [{
-                data: [likes + comments, views - likes - comments],
-                backgroundColor: [
-                    'rgba(99, 102, 241, 0.8)',
-                    'rgba(148, 163, 184, 0.3)'
-                ],
-                borderColor: [
-                    'rgba(99, 102, 241, 1)',
-                    'rgba(148, 163, 184, 0.5)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: 'rgba(148, 163, 184, 0.8)'
-                    }
-                },
-                title: {
-                    display: true,
-                    text: `Engagement Rate: ${engagementRate}%`,
-                    color: 'rgba(241, 245, 249, 0.9)',
-                    font: {
-                        size: 16
-                    }
-                }
-            }
-        }
-    });
-}
 
 // Switch tabs
 function switchTab(tabName) {

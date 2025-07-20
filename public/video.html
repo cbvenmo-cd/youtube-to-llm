@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="video-detail.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body>
     <div class="gradient-bg"></div>
@@ -145,14 +145,7 @@
                     </svg>
                     Transcript
                 </button>
-                <button class="tab-button" data-tab="analytics">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="20" x2="18" y2="10"/>
-                        <line x1="12" y1="20" x2="12" y2="4"/>
-                        <line x1="6" y1="20" x2="6" y2="14"/>
-                    </svg>
-                    Analytics
-                </button>
+
                 <button class="tab-button" data-tab="export">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -229,45 +222,7 @@
                     <div id="transcriptContent" class="transcript-content"></div>
                 </div>
 
-                <!-- Analytics Tab -->
-                <div id="analyticsTab" class="tab-panel">
-                    <div class="analytics-grid">
-                        <!-- Word Frequency Chart -->
-                        <div class="card chart-card">
-                            <h3>Most Frequent Words</h3>
-                            <canvas id="wordFrequencyChart"></canvas>
-                        </div>
 
-                        <!-- Engagement Metrics -->
-                        <div class="card chart-card">
-                            <h3>Engagement Metrics</h3>
-                            <canvas id="engagementChart"></canvas>
-                        </div>
-
-                        <!-- Text Statistics -->
-                        <div class="card">
-                            <h3>Text Analysis</h3>
-                            <div class="text-stats">
-                                <div class="text-stat">
-                                    <span class="label">Unique Words</span>
-                                    <span id="uniqueWords" class="value">-</span>
-                                </div>
-                                <div class="text-stat">
-                                    <span class="label">Average Word Length</span>
-                                    <span id="avgWordLength" class="value">-</span>
-                                </div>
-                                <div class="text-stat">
-                                    <span class="label">Sentences</span>
-                                    <span id="sentenceCount" class="value">-</span>
-                                </div>
-                                <div class="text-stat">
-                                    <span class="label">Lexical Diversity</span>
-                                    <span id="lexicalDiversity" class="value">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Export Tab -->
                 <div id="exportTab" class="tab-panel">
