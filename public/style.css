@@ -114,6 +114,66 @@ body {
     }
 }
 
+/* Link Styles */
+a {
+    color: var(--primary-light);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+    background-image: linear-gradient(to bottom, var(--primary-color), var(--primary-color));
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    transition: background-size 0.3s ease, color 0.2s ease;
+}
+
+a:hover {
+    color: var(--primary-color);
+}
+
+/* Add underline effect on hover for text links */
+a:not(.play-button):not([class*="button"]):hover {
+    background-size: 100% 1px;
+}
+
+/* Alternative style with text-decoration for better multi-line support */
+a:not(.play-button):not([class*="button"]) {
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+    transition: text-decoration-color 0.3s ease, color 0.2s ease;
+}
+
+a:not(.play-button):not([class*="button"]):hover {
+    text-decoration-color: var(--primary-color);
+}
+
+/* Special styling for header links */
+header a {
+    color: inherit;
+}
+
+header a:hover {
+    color: var(--primary-light);
+}
+
+/* Play button link should not have text link styles */
+.play-button {
+    text-decoration: none !important;
+    background-image: none !important;
+}
+
+/* Ensure buttons inside links don't have underlines */
+a button {
+    text-decoration: none !important;
+}
+
+a:has(button) {
+    text-decoration: none !important;
+    background-image: none !important;
+}
+
 /* Container */
 .container {
     max-width: 1240px;
