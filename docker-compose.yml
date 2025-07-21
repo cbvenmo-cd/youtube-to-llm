@@ -4,8 +4,14 @@ services:
     container_name: yva-app
     ports:
       - "8080:8080"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - AUTH_MODE=${AUTH_MODE:-development}
+      - ALLOW_MODE_SWITCHING=${ALLOW_MODE_SWITCHING:-true}
+      - SESSION_DURATION_DAYS=${SESSION_DURATION_DAYS:-90}
+      - API_KEY=${API_KEY}
     env_file:
-      - .env
+      - ${ENV_FILE:-.env.development}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]

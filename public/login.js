@@ -5,6 +5,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('apiKey');
     const loginButton = document.getElementById('loginButton');
     const loginMessage = document.getElementById('loginMessage');
+    const rememberMeCheckbox = document.getElementById('rememberMe');
+    const passwordToggle = document.getElementById('passwordToggle');
+    const devModeQuickLink = document.getElementById('devModeQuickLink');
+    
+    // Check if on localhost
+    function isLocalhost() {
+        return window.location.hostname === 'localhost' || 
+               window.location.hostname === '127.0.0.1' ||
+               window.location.hostname === '0.0.0.0';
+    }
+    
+    // Load remember me preference
+    const savedPreference = localStorage.getItem('yva_remember_preference');
+    if (savedPreference !== null) {
+        rememberMeCheckbox.checked = savedPreference === 'true';
+    }
+    
+    // Auto-focus API key field
+    apiKeyInput.focus();
     
     // Check if already authenticated
     const authToken = localStorage.getItem('yva_auth_token');
@@ -18,21 +37,96 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add input animation
     apiKeyInput.addEventListener('focus', function() {
-        this.parentElement.style.transform = 'scale(1.02)';
+        this.parentElement.parentElement.style.transform = 'scale(1.02)';
     });
     
     apiKeyInput.addEventListener('blur', function() {
-        this.parentElement.style.transform = 'scale(1)';
+        this.parentElement.parentElement.style.transform = 'scale(1)';
     });
+    
+    // Password visibility toggle
+    if (passwordToggle) {
+        passwordToggle.addEventListener('click', function() {
+            const type = apiKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            apiKeyInput.setAttribute('type', type);
+            
+            // Update icon
+            if (type === 'text') {
+                this.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                `;
+            } else {
+                this.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                `;
+            }
+        });
+    }
+    
+    // Show dev mode quick link on localhost
+    if (isLocalhost() && devModeQuickLink) {
+        // Check current mode
+        fetchAuthMode().then(modeData => {
+            if (modeData && modeData.mode !== 'development') {
+                devModeQuickLink.style.display = 'block';
+                
+                // Handle dev mode switch
+                const link = devModeQuickLink.querySelector('a');
+                if (link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (confirm('Switch to development mode? This will disable authentication.')) {
+                            localStorage.setItem('YVA_AUTH_MODE', 'development');
+                            window.location.reload();
+                        }
+                    });
+                }
+            }
+        });
+    }
+    
+    // Check if in dev mode and skip login
+    fetchAuthMode().then(modeData => {
+        if (modeData && modeData.mode === 'development' && isLocalhost()) {
+            showMessage('Development mode active - redirecting...', 'success');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+    });
+    
+    async function fetchAuthMode() {
+        try {
+            const response = await fetch('/api/auth/mode');
+            if (!response.ok) {
+                throw new Error('Failed to fetch auth mode');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching auth mode:', error);
+            return null;
+        }
+    }
     
     async function handleLogin(e) {
         e.preventDefault();
         
         const apiKey = apiKeyInput.value.trim();
+        const rememberMe = document.getElementById('rememberMe').checked;
+        
         if (!apiKey) {
             showMessage('Please enter your API key', 'error');
             return;
         }
+        
+        // Save remember me preference
+        localStorage.setItem('yva_remember_preference', rememberMe);
         
         // Show loading state
         loginButton.disabled = true;
@@ -49,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ apiKey })
+                body: JSON.stringify({ apiKey, rememberMe })
             });
             
             const data = await response.json();

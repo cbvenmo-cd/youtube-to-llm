@@ -10,10 +10,42 @@ let currentVideo = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check authentication
-    if (!authToken) {
-        window.location.href = '/login';
-        return;
+    // First check authentication mode
+    try {
+        const modeResponse = await fetch('/api/auth/mode');
+        const modeData = await modeResponse.json();
+        
+        // If in development mode, skip auth verification
+        if (modeData.mode === 'development') {
+            console.log('[DEV MODE] Authentication bypassed');
+            // Show dev mode indicator if exists
+            const devIndicator = document.getElementById('devModeIndicator');
+            if (devIndicator) {
+                devIndicator.style.display = 'block';
+            }
+        } else {
+            // Production mode - check if we have a valid session (cookie or token)
+            // Try to verify authentication (will use cookie if no token)
+            const response = await fetch('/api/auth/verify', {
+                headers: authToken ? {
+                    'Authorization': `Bearer ${authToken}`
+                } : {}
+            });
+            
+            if (!response.ok) {
+                // Only redirect to login if we don't have any valid auth
+                localStorage.removeItem('yva_auth_token');
+                window.location.href = '/login';
+                return;
+            }
+        }
+    } catch (error) {
+        console.error('Auth mode check error:', error);
+        // Fallback to original behavior
+        if (!authToken || authToken === '') {
+            window.location.href = '/login';
+            return;
+        }
     }
     
     // Get video ID from URL

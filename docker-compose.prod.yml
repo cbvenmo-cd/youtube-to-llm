@@ -1,0 +1,8 @@
+services:
+  yva-app:
+    environment:
+      - NODE_ENV=production
+      - AUTH_MODE=production
+      - ALLOW_MODE_SWITCHING=false
+    env_file:
+      - .env.production

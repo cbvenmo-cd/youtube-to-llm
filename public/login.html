@@ -8,6 +8,13 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 <body>
+    <!-- Dev Mode Banner -->
+    <div id="devModeBanner" class="dev-mode-banner hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span>DEVELOPMENT MODE - Authentication Disabled</span>
+    </div>
     <div class="gradient-bg"></div>
     <div class="gradient-overlay"></div>
     <div class="container">
@@ -20,14 +27,34 @@
             <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="apiKey">API Key</label>
-                    <input 
-                        type="password" 
-                        id="apiKey" 
-                        name="apiKey" 
-                        placeholder="Enter your API key" 
-                        required 
-                        autocomplete="off"
-                    />
+                    <div class="password-input-wrapper">
+                        <input 
+                            type="password" 
+                            id="apiKey" 
+                            name="apiKey" 
+                            placeholder="Enter your API key" 
+                            required 
+                            autocomplete="off"
+                        />
+                        <button type="button" id="passwordToggle" class="password-toggle" aria-label="Toggle password visibility">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input 
+                            type="checkbox" 
+                            id="rememberMe" 
+                            name="rememberMe" 
+                            checked
+                        />
+                        <span class="checkbox-text">Keep me logged in for 90 days</span>
+                    </label>
                 </div>
                 
                 <button type="submit" id="loginButton" class="login-button">
@@ -41,9 +68,22 @@
             </form>
             
             <div id="loginMessage" class="error-message" style="display: none;"></div>
+            
+            <!-- Dev Mode Quick Access (localhost only) -->
+            <div id="devModeQuickLink" style="display: none; text-align: center; margin-top: 1rem;">
+                <a href="#" class="dev-mode-quick-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M8 12h8"></path>
+                        <path d="M12 8v8"></path>
+                    </svg>
+                    Switch to Development Mode
+                </a>
+            </div>
         </div>
     </div>
 
     <script src="login.js"></script>
+    <script src="mode-indicator.js"></script>
 </body>
 </html>

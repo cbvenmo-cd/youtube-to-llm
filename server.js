@@ -18,6 +18,13 @@ const crypto = require('crypto');
 // Load environment variables
 dotenv.config();
 
+// Detect environment and force production mode on Fly.io
+const isProduction = process.env.NODE_ENV === 'production';
+const isFlyDeployment = process.env.FLY_APP_NAME || process.env.FLY_DEPLOY === 'true';
+const AUTH_MODE = isFlyDeployment ? 'production' : (process.env.AUTH_MODE || 'production');
+const SESSION_DURATION_DAYS = parseInt(process.env.SESSION_DURATION_DAYS || '90');
+const ALLOW_MODE_SWITCHING = process.env.ALLOW_MODE_SWITCHING === 'true' && !isFlyDeployment;
+
 // Initialize Express app
 const app = express();
 const prisma = new PrismaClient();
@@ -40,21 +47,64 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Development Mode Middleware
+const devModeMiddleware = (req, res, next) => {
+  req.session = {
+    mock: true,
+    mode: 'development',
+    createdAt: Date.now(),
+    userAgent: req.headers['user-agent'],
+    deviceInfo: 'Development Mode'
+  };
+  console.log(`[DEV MODE] ${req.method} ${req.path} - auth bypassed`);
+  next();
+};
+
 // Session Authentication Middleware
 const authenticateSession = (req, res, next) => {
+  // Skip authentication in development mode
+  if (AUTH_MODE === 'development') {
+    req.session = { mock: true, mode: 'development' };
+    console.log(`[DEV MODE] Request to ${req.path} - auth bypassed`);
+    return next();
+  }
+
+  // Check for cookie first, then Authorization header
+  const cookieToken = req.headers.cookie?.split('; ')
+    .find(row => row.startsWith('yva_session='))
+    ?.split('=')[1];
+  
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  const token = cookieToken || headerToken;
   
   if (!token || !sessions.has(token)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  // Check if session is expired (24 hours)
+  // Get session and check expiration
   const session = sessions.get(token);
-  if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
-    sessions.delete(token);
-    return res.status(401).json({ error: 'Session expired' });
+  
+  // Use expiresAt if available, otherwise calculate from createdAt
+  if (session.expiresAt) {
+    // Add 5 minute grace period for recently expired tokens
+    const graceTime = 5 * 60 * 1000;
+    if (Date.now() > session.expiresAt + graceTime) {
+      sessions.delete(token);
+      return res.status(401).json({ error: 'Session expired' });
+    }
+  } else {
+    // Legacy check for sessions without expiresAt
+    const sessionDurationMs = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
+    if (Date.now() - session.createdAt > sessionDurationMs) {
+      sessions.delete(token);
+      return res.status(401).json({ error: 'Session expired' });
+    }
   }
+  
+  // Update last activity
+  session.lastActivityAt = Date.now();
   
   req.session = session;
   next();
@@ -62,15 +112,42 @@ const authenticateSession = (req, res, next) => {
 
 // API Key Authentication Middleware (for backward compatibility)
 const authenticateApiKey = (req, res, next) => {
-  // First check for session token
+  // Skip authentication in development mode
+  if (AUTH_MODE === 'development') {
+    req.session = { mock: true, mode: 'development' };
+    console.log(`[DEV MODE] Request to ${req.path} - auth bypassed`);
+    return next();
+  }
+
+  // Check for cookie first, then Authorization header
+  const cookieToken = req.headers.cookie?.split('; ')
+    .find(row => row.startsWith('yva_session='))
+    ?.split('=')[1];
+  
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  const token = cookieToken || headerToken;
   
   if (token && sessions.has(token)) {
     const session = sessions.get(token);
-    if (Date.now() - session.createdAt <= 24 * 60 * 60 * 1000) {
-      req.session = session;
-      return next();
+    
+    // Check expiration
+    if (session.expiresAt) {
+      const graceTime = 5 * 60 * 1000;
+      if (Date.now() <= session.expiresAt + graceTime) {
+        session.lastActivityAt = Date.now();
+        req.session = session;
+        return next();
+      }
+    } else {
+      // Legacy check
+      const sessionDurationMs = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
+      if (Date.now() - session.createdAt <= sessionDurationMs) {
+        session.lastActivityAt = Date.now();
+        req.session = session;
+        return next();
+      }
     }
   }
   
@@ -267,26 +344,50 @@ async function getTranscript(videoUrl, videoId) {
 
 // Authentication Routes
 app.post('/api/auth/login', (req, res) => {
-  const { apiKey } = req.body;
+  const { apiKey, rememberMe = true } = req.body;
   
   if (!apiKey || apiKey !== process.env.API_KEY) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
   
+  // Calculate session duration based on remember me
+  const sessionDays = rememberMe ? SESSION_DURATION_DAYS : 1;
+  const sessionDurationMs = sessionDays * 24 * 60 * 60 * 1000;
+  
   // Generate session token
   const token = generateToken();
+  const now = Date.now();
+  
   const session = {
     token,
-    createdAt: Date.now(),
-    apiKey
+    createdAt: now,
+    expiresAt: now + sessionDurationMs,
+    lastActivityAt: now,
+    rememberMe,
+    apiKey,
+    userAgent: req.headers['user-agent'],
+    createdFrom: req.ip || req.connection.remoteAddress
   };
   
   sessions.set(token, session);
   
+  // Set cookie options
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction || isFlyDeployment,
+    sameSite: 'lax',
+    maxAge: sessionDurationMs,
+    path: '/'
+  };
+  
+  // Set session cookie
+  res.cookie('yva_session', token, cookieOptions);
+  
   res.json({ 
     success: true, 
     token,
-    expiresIn: 86400 // 24 hours in seconds
+    expiresIn: sessionDays * 24 * 60 * 60, // Convert days to seconds
+    sessionDays
   });
 });
 
@@ -298,14 +399,104 @@ app.get('/api/auth/verify', authenticateSession, (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
+  // Check for token in cookie or header
+  const cookieToken = req.headers.cookie?.split('; ')
+    .find(row => row.startsWith('yva_session='))
+    ?.split('=')[1];
+  
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  const token = cookieToken || headerToken;
   
   if (token && sessions.has(token)) {
     sessions.delete(token);
   }
   
+  // Clear cookie
+  res.cookie('yva_session', '', {
+    httpOnly: true,
+    secure: isProduction || isFlyDeployment,
+    sameSite: 'lax',
+    expires: new Date(0),
+    path: '/'
+  });
+  
   res.json({ success: true });
+});
+
+// Refresh session endpoint
+app.post('/api/auth/refresh', authenticateSession, (req, res) => {
+  const session = req.session;
+  
+  if (!session || session.mock) {
+    return res.status(401).json({ error: 'No valid session to refresh' });
+  }
+  
+  // Calculate new expiration
+  const sessionDays = session.rememberMe ? SESSION_DURATION_DAYS : 1;
+  const sessionDurationMs = sessionDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  
+  // Update session
+  session.expiresAt = now + sessionDurationMs;
+  session.lastActivityAt = now;
+  
+  // Update cookie
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction || isFlyDeployment,
+    sameSite: 'lax',
+    maxAge: sessionDurationMs,
+    path: '/'
+  };
+  
+  res.cookie('yva_session', session.token, cookieOptions);
+  
+  res.json({
+    success: true,
+    expiresAt: session.expiresAt,
+    sessionDays
+  });
+});
+
+// Get session info endpoint
+app.get('/api/auth/session-info', authenticateSession, (req, res) => {
+  const session = req.session;
+  
+  if (!session || session.mock) {
+    return res.json({
+      mode: 'development',
+      mock: true
+    });
+  }
+  
+  const now = Date.now();
+  const sessionAge = now - session.createdAt;
+  const timeRemaining = session.expiresAt - now;
+  
+  res.json({
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    lastActivityAt: session.lastActivityAt,
+    sessionAge: Math.floor(sessionAge / 1000), // seconds
+    timeRemaining: Math.floor(timeRemaining / 1000), // seconds
+    rememberMe: session.rememberMe,
+    userAgent: session.userAgent,
+    createdFrom: session.createdFrom
+  });
+});
+
+// Get current authentication mode
+app.get('/api/auth/mode', (req, res) => {
+  res.json({
+    mode: AUTH_MODE,
+    environment: isFlyDeployment ? 'production' : 'local',
+    modeSwitchingAllowed: ALLOW_MODE_SWITCHING,
+    sessionDurationDays: SESSION_DURATION_DAYS,
+    isFlyDeployment,
+    nodeEnv: process.env.NODE_ENV
+  });
 });
 
 // HTML Page Routes (clean URLs without .html extension)
@@ -671,7 +862,21 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
+  console.log('===========================================');
   console.log(`YouTube Video Analyzer server running on port ${PORT}`);
+  console.log('===========================================');
+  console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
+  console.log(`AUTH_MODE: ${AUTH_MODE}`);
+  console.log(`Session Duration: ${SESSION_DURATION_DAYS} days`);
+  console.log(`Mode Switching: ${ALLOW_MODE_SWITCHING ? 'enabled' : 'disabled'}`);
+  console.log(`Fly.io Deployment: ${isFlyDeployment ? 'yes' : 'no'}`);
+  
+  if (AUTH_MODE === 'development') {
+    console.log('\n⚠️  WARNING: Running in DEVELOPMENT MODE');
+    console.log('⚠️  Authentication is DISABLED');
+    console.log('⚠️  This mode should NEVER be deployed to production\n');
+  }
+  console.log('===========================================');
 });
 
 // Graceful shutdown

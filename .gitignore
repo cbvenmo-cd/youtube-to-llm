@@ -7,9 +7,13 @@ yarn-error.log*
 # Environment variables
 .env
 .env.local
+.env.development
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
+.env.fly
+.env.*.local
 
 # Production
 dist/
@@ -75,3 +79,10 @@ out/
 *~
 
 /generated/prisma
+
+# Puppeteer
+puppeteer-data/
+puppeteer-screenshots/
+puppeteer-logs/
+.env.puppeteer
+puppeteer-config-debug.json

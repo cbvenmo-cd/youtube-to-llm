@@ -54,19 +54,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Check authentication status
 async function checkAuth() {
-    if (!authToken) {
-        window.location.href = '/login';
-        return;
-    }
-    
     try {
-        const response = await fetch('/api/auth/verify', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
+        // First check authentication mode
+        const modeResponse = await fetch('/api/auth/mode');
+        const modeData = await modeResponse.json();
+        
+        // If in development mode, skip auth verification
+        if (modeData.mode === 'development') {
+            console.log('[DEV MODE] Authentication bypassed');
+            // Show dev mode indicator if exists
+            const devIndicator = document.getElementById('devModeIndicator');
+            if (devIndicator) {
+                devIndicator.style.display = 'block';
             }
+            // Load tags and previous analyses
+            await loadTags();
+            loadPreviousAnalyses();
+            return;
+        }
+        
+        // Production mode - check if we have a valid session (cookie or token)
+        // Try to verify authentication (will use cookie if no token)
+        const response = await fetch('/api/auth/verify', {
+            headers: authToken ? {
+                'Authorization': `Bearer ${authToken}`
+            } : {}
         });
         
         if (!response.ok) {
+            // Only redirect to login if we don't have any valid auth
             localStorage.removeItem('yva_auth_token');
             window.location.href = '/login';
             return;
